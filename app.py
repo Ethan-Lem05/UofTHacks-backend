@@ -63,8 +63,12 @@ def dashboard():
         return redirect('/login', 302)
     else:
         messages = Message.query.all()
-        
-    return (render_template("Dashboard.html", messages = messages), 200)
+        for message in messages:
+            message.received = True
+            db.session.add(message)
+        db.session.commit()
+
+        return messages, 200
 
 ################# FETCH POINTS ##################
 
@@ -72,7 +76,7 @@ def dashboard():
 def recap():
     
     recap_dict = []
-    return jsonify(recap_dict), 200kgit
+    return jsonify(recap_dict), 200
 
 #################### SOCKETS ####################
 
