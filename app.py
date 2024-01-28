@@ -10,6 +10,7 @@ SocketIO = SocketIO(app)
 live_connections = {}
 
 #################### MODELS ####################
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -29,8 +30,8 @@ class Conversation(db.Model):
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sender = db.Column(db.String(80), nullable=False)
-    receiver = db.Column(db.String(80), nullable=False)
+    sender = db.Column(db.Integer, nullable=False)
+    receiver = db.Column(db.Integer, nullable=False)
     text = db.Column(db.String(80), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False)
     received = db.Column(db.Boolean, nullable=False)
@@ -57,13 +58,16 @@ def login():
 def dashboard():
     return (render_template("Dashboard.html"), 200)
 
-################# FETCH POINTS #################
+################# FETCH POINTS ##################
+
 @app.route("/recap")
 def recap():
     
     recap_dict = []
     return jsonify(recap_dict), 200
+
 #################### SOCKETS ####################
+
 @SocketIO.on('connect')
 def handle_connect():
     id = session[id]
@@ -79,7 +83,7 @@ def handle_message(msg):
             'received': False,
             'conversation_id': msg.conversation_id
         }
-    if message.receiver.id in live_connections:
+    if message.receiver in live_connections:
         message.received = True
         SocketIO.emit('json', msg, room=live_connections[msg.receiver])
     else:
