@@ -32,8 +32,8 @@ class Conversation(db.Model):
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sender = db.Column(db.Integer, nullable=False)
-    receiver = db.Column(db.Integer, nullable=False)
+    sender = db.Column(db.String(40), nullable=False)
+    receiver = db.Column(db.String(40), nullable=False)
     text = db.Column(db.String(80), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False)
     received = db.Column(db.Boolean, nullable=False)
