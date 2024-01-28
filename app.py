@@ -1,10 +1,13 @@
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
+import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////test.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.path.dirname(__file__), 'test.db')
 db = SQLAlchemy(app)
+SocketIO = SocketIO(app)
+live_connections = {}
 
 #################### MODELS ####################
 class User(db.Model):
@@ -30,7 +33,8 @@ class Message(db.Model):
     receiver = db.Column(db.String(80), nullable=False)
     text = db.Column(db.String(80), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False)
-    conversation_id = db.Column(db.Integer, db.ForeignKey('conversation.id'), nullable=False)
+    received = db.Column(db.Boolean, nullable=False)
+    conversation_id = db.Column(db.ForeignKey('conversation.id'), nullable=False)
 
     def __repr__(self):
         return '<Message %r>' % self.text
@@ -39,15 +43,50 @@ class Message(db.Model):
 
 @app.route('/')
 def index():
-    redirect('/login')
+    return redirect('/login', 302)
 
-@app.route('/login') 
+@app.route('/login', methods=['GET', 'POST']) 
 def login():
-    if()
-    return render_template('login.html')
+    if(request.method == 'POST'):  
+        session['username'] = request.form['username']
+        return redirect(url_for('dashboard')),200
+    else:
+        return render_template('login.html'), 200
 
 @app.route("/dashboard")
+def dashboard():
+    return (render_template("Dashboard.html"), 200)
+
+################# FETCH POINTS #################
+@app.route("/recap")
+def recap():
+    
+    recap_dict = []
+    return jsonify(recap_dict), 200
+#################### SOCKETS ####################
+@SocketIO.on('connect')
+def handle_connect():
+    id = session[id]
+    live_connections[id] = request.sid
+
+@SocketIO.on('json')
+def handle_message(msg):
+    message = {
+            'sender': msg.sender,
+            'receiver': msg.receiver,
+            'text': msg.text,
+            'created_at': msg.created_at,
+            'received': False,
+            'conversation_id': msg.conversation_id
+        }
+    if message.receiver.id in live_connections:
+        message.received = True
+        SocketIO.emit('json', msg, room=live_connections[msg.receiver])
+    else:
+        db.session.add(message)
+        db.session.commit()
 
 if __name__ == '__main__':
-    db.create_all()
-    app.run(debug=True)
+    with app.app_context():
+        db.create_all()
+    SocketIO.run(app, debug=True)
